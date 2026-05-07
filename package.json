@@ -1,0 +1,25 @@
+{
+  "name": "parcel-terrain-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Three.js parcel terrain viewer for 17 Crow Hill Ln, Rhinebeck, NY",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lil-gui": "^0.19.2",
+    "proj4": "^2.11.0",
+    "three": "^0.160.0",
+    "@turf/turf": "^6.5.0"
+  },
+  "devDependencies": {
+    "@types/proj4": "^2.5.5",
+    "@types/three": "^0.160.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.2.0"
+  }
+}

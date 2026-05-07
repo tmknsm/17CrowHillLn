@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:," />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>17 Crow Hill Ln — Parcel Terrain Viewer</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #1a1d1f;
+        --panel: rgba(28, 32, 35, 0.92);
+        --panel-border: rgba(255, 255, 255, 0.08);
+        --text: #e6e8ea;
+        --text-dim: #9aa3ab;
+        --accent: #b9d39e;
+        --accent-strong: #6f9d4a;
+        --button: rgba(255, 255, 255, 0.06);
+        --button-hover: rgba(255, 255, 255, 0.12);
+        --button-active: var(--accent-strong);
+        --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      #app {
+        position: fixed;
+        inset: 0;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Top header */
+      .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 16px;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .header > * {
+        pointer-events: auto;
+      }
+
+      .title {
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        padding: 8px 14px;
+        box-shadow: var(--shadow);
+      }
+
+      .title strong {
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+
+      .title small {
+        color: var(--text-dim);
+        margin-left: 8px;
+      }
+
+      /* Camera presets */
+      .camera-presets {
+        position: fixed;
+        top: 64px;
+        right: 16px;
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        box-shadow: var(--shadow);
+        z-index: 9;
+        min-width: 140px;
+      }
+
+      .camera-presets .label {
+        color: var(--text-dim);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 2px 6px 4px;
+      }
+
+      .camera-presets button {
+        appearance: none;
+        background: var(--button);
+        color: var(--text);
+        border: 0;
+        padding: 7px 10px;
+        border-radius: 6px;
+        font: inherit;
+        font-size: 12px;
+        text-align: left;
+        cursor: pointer;
+        transition: background 120ms ease;
+      }
+
+      .camera-presets button:hover {
+        background: var(--button-hover);
+      }
+
+      /* Bottom HUD: scale bar + cursor info + disclaimer */
+      .hud-bottom {
+        position: fixed;
+        bottom: 12px;
+        left: 16px;
+        right: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 16px;
+        pointer-events: none;
+        z-index: 9;
+      }
+
+      .hud-bottom > * {
+        pointer-events: auto;
+      }
+
+      .scale-bar {
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 11px;
+        color: var(--text-dim);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .scale-bar .bar {
+        height: 6px;
+        background: linear-gradient(
+          to right,
+          var(--text) 0%,
+          var(--text) 50%,
+          var(--text-dim) 50%,
+          var(--text-dim) 100%
+        );
+        border-radius: 2px;
+      }
+
+      .scale-bar .ticks {
+        display: flex;
+        justify-content: space-between;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .cursor-readout {
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 11px;
+        color: var(--text-dim);
+        font-variant-numeric: tabular-nums;
+        min-width: 200px;
+      }
+
+      .cursor-readout strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      .disclaimer {
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 11px;
+        color: var(--text-dim);
+        max-width: 320px;
+        text-align: right;
+      }
+
+      /* North arrow */
+      .north-arrow {
+        position: fixed;
+        bottom: 92px;
+        left: 16px;
+        width: 56px;
+        height: 56px;
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--panel-border);
+        border-radius: 50%;
+        box-shadow: var(--shadow);
+        z-index: 9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .north-arrow svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* lil-gui placement */
+      .lil-gui.root {
+        --background-color: var(--panel) !important;
+        --title-background-color: rgba(255, 255, 255, 0.04) !important;
+        --text-color: var(--text) !important;
+        --widget-color: rgba(255, 255, 255, 0.06) !important;
+        --hover-color: rgba(255, 255, 255, 0.12) !important;
+        --focus-color: var(--accent-strong) !important;
+        --font-size: 12px !important;
+        --input-font-size: 12px !important;
+        --folder-indent: 6px !important;
+        --widget-padding: 4px !important;
+        --slider-knob-width: 2px !important;
+        z-index: 8 !important;
+        top: 64px !important;
+        left: 16px !important;
+        max-height: calc(100vh - 200px) !important;
+        border: 1px solid var(--panel-border) !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(8px) !important;
+        box-shadow: var(--shadow) !important;
+      }
+
+      .lil-gui.root .title {
+        font-weight: 600 !important;
+      }
+
+      .loading {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg);
+        color: var(--text-dim);
+        font-size: 14px;
+        z-index: 100;
+        transition: opacity 320ms ease;
+      }
+
+      .loading.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <header class="header">
+      <div class="title">
+        <strong>17 Crow Hill Ln</strong>
+        <small>Rhinebeck, NY · 41.9379108, -73.8851494</small>
+      </div>
+    </header>
+
+    <aside class="camera-presets" id="camera-presets">
+      <div class="label">Camera</div>
+      <button data-preset="topDown">Top Down</button>
+      <button data-preset="roadApproach">Road Approach</button>
+      <button data-preset="downhill">Downhill View</button>
+      <button data-preset="sideSlope">Side Slope</button>
+      <button data-preset="freeOrbit">Free Orbit</button>
+    </aside>
+
+    <div class="north-arrow" id="north-arrow" title="North">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1" />
+        <g id="north-arrow-rotor">
+          <polygon points="32,8 38,34 32,29 26,34" fill="#b9d39e" />
+          <polygon points="32,56 38,30 32,35 26,30" fill="rgba(255,255,255,0.45)" />
+        </g>
+        <text
+          x="32"
+          y="6"
+          text-anchor="middle"
+          font-size="9"
+          fill="#e6e8ea"
+          font-family="-apple-system, sans-serif"
+          font-weight="600"
+        >
+          N
+        </text>
+      </svg>
+    </div>
+
+    <footer class="hud-bottom">
+      <div class="scale-bar" id="scale-bar">
+        <div class="bar"></div>
+        <div class="ticks">
+          <span>0</span>
+          <span id="scale-mid">25 m</span>
+          <span id="scale-end">50 m</span>
+        </div>
+      </div>
+      <div class="cursor-readout" id="cursor-readout">
+        Hover terrain for elevation
+      </div>
+      <div class="disclaimer">
+        Conceptual terrain visualization. Not a survey or engineering plan.
+      </div>
+    </footer>
+
+    <div class="loading" id="loading">Loading site…</div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
