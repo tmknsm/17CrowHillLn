@@ -18,6 +18,10 @@ export function createLayerPanel(
     .name("Parcel boundary")
     .onChange(() => hooks.onVisibilityChange(state.visibility));
   baseFolder
+    .add(state.visibility, "lotDimensions")
+    .name("Lot dimensions")
+    .onChange(() => hooks.onVisibilityChange(state.visibility));
+  baseFolder
     .add(state.visibility, "roadContext")
     .name("Road / context")
     .onChange(() => hooks.onVisibilityChange(state.visibility));

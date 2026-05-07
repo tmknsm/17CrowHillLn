@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 export interface LayerVisibility {
   parcelBoundary: boolean;
+  lotDimensions: boolean;
   roadContext: boolean;
   terrain: boolean;
   contours: boolean;
@@ -9,6 +10,7 @@ export interface LayerVisibility {
 
 export interface LayerHandles {
   parcelBoundary?: THREE.Object3D;
+  lotDimensions?: THREE.Object3D;
   roadContext?: THREE.Object3D;
   terrain?: THREE.Object3D;
   contours?: THREE.Object3D;
@@ -16,6 +18,7 @@ export interface LayerHandles {
 
 export const defaultVisibility = (): LayerVisibility => ({
   parcelBoundary: true,
+  lotDimensions: true,
   roadContext: true,
   terrain: true,
   contours: true
@@ -31,6 +34,7 @@ export function applyLayerVisibility(
   handles: LayerHandles
 ): void {
   setVisible(handles.parcelBoundary, visibility.parcelBoundary);
+  setVisible(handles.lotDimensions, visibility.lotDimensions);
   setVisible(handles.roadContext, visibility.roadContext);
   setVisible(handles.terrain, visibility.terrain);
   setVisible(handles.contours, visibility.contours);
