@@ -14,7 +14,7 @@ export const Palette = {
   building: 0xc7b69d,
   buildingRoof: 0x6b5a47,
   driveway: 0x8a857c,
-  pool: 0x4d8aa6,
+  pool: 0x3aa8c8,
   lawn: 0x88a76a,
   retainingWall: 0x6e6a64,
   cut: 0xc97a4f,

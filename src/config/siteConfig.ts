@@ -34,6 +34,8 @@ export interface SiteConfig {
     defaultAnchorXMeters: number;
     defaultAnchorZMeters: number;
     defaultFloorOffsetAboveWestGradeFt: number;
+    /** Default state of the "Auto-grade terrain" toggle on app load. */
+    defaultAutoGradeTerrain: boolean;
   };
 }
 
@@ -62,7 +64,8 @@ export const siteConfig: SiteConfig = {
   },
   property: {
     defaultAnchorXMeters: 24.5,
-    defaultAnchorZMeters: -10.5,
-    defaultFloorOffsetAboveWestGradeFt: 6
+    defaultAnchorZMeters: 21,
+    defaultFloorOffsetAboveWestGradeFt: 0,
+    defaultAutoGradeTerrain: true
   }
 };

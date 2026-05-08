@@ -50,9 +50,9 @@ export const defaultVisibility = (): LayerVisibility => ({
   lowerWalkout: true,
   poolTerrace: true,
   pool: true,
-  grassZones: true,
+  grassZones: false,
   stairs: true,
-  retainingWalls: true,
+  retainingWalls: false,
   gradingPads: false,
   cutFillOverlay: false,
   labels: false
@@ -63,6 +63,13 @@ export interface ViewState {
   exaggeration: number;
   anchor: PropertyAnchor;
   floorOffsetAboveWestGradeFt: number;
+  /**
+   * When true, the displayed terrain is regraded under the house and pool
+   * terrace pads so the structures stay above grade — useful for visualizing
+   * what the site would look like after the proposed cut. The original DEM
+   * is still used for cut/fill analytics and the property report.
+   */
+  autoGradeTerrain: boolean;
 }
 
 export function applyLayerVisibility(

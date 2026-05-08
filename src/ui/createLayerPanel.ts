@@ -15,6 +15,8 @@ export interface LayerPanelHooks {
     anchor: PropertyAnchor,
     floorOffsetAboveWestGradeFt: number
   ) => void;
+  /** Toggle whether the displayed terrain is auto-graded under the pads. */
+  onAutoGradeChange: (enabled: boolean) => void;
 }
 
 export function createLayerPanel(
@@ -154,6 +156,13 @@ export function createLayerPanel(
     .onChange((v: number) => {
       state.exaggeration = v;
       hooks.onExaggerationChange(v);
+    });
+  settingsFolder
+    .add(state, "autoGradeTerrain")
+    .name("Auto-grade terrain")
+    .onChange((enabled: boolean) => {
+      state.autoGradeTerrain = enabled;
+      hooks.onAutoGradeChange(enabled);
     });
 
   return { gui };

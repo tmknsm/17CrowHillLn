@@ -6,7 +6,9 @@ import { metersToFeet } from "../utils/geo";
 export interface CursorReadoutContext {
   camera: THREE.PerspectiveCamera;
   domElement: HTMLElement;
-  dem: DemData;
+  /** Pulled lazily so the readout reflects the currently displayed DEM
+   *  (e.g., the auto-graded version when that toggle is on). */
+  getDem: () => DemData;
   getExaggeration: () => number;
 }
 
@@ -39,7 +41,7 @@ export function bindCursorReadout(ctx: CursorReadoutContext): void {
       return;
     }
 
-    const dem = ctx.dem;
+    const dem = ctx.getDem();
     if (
       Math.abs(intersection.x) > dem.widthMeters / 2 ||
       Math.abs(intersection.z) > dem.depthMeters / 2

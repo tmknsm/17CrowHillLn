@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { feetToMeters, metersToFeet } from "../utils/geo";
 import { sampleDem, type DemData } from "../terrain/demData";
+import type { GradingPadSpec } from "../terrain/applyProposedGrading";
 import {
   type PropertyAnchor,
   localToWorld,
@@ -64,6 +65,13 @@ export interface PropertyDesign {
   /** Cheap transform-only update during continuous anchor slider drags. */
   setAnchorTransform(anchor: PropertyAnchor): void;
   getReportData(): PropertyReportData;
+  /**
+   * Pads that should drive terrain auto-grading: the house (cut/fill to FF)
+   * and the pool terrace (cut/fill to FF - 14 ft) are level outdoor pads.
+   * The walkout is a building, not an open pad, so its footprint is excluded
+   * — its walls handle the cut against surrounding terrain.
+   */
+  getGradingPads(): GradingPadSpec[];
   dispose(): void;
 }
 
@@ -102,11 +110,14 @@ const DIMS = {
     postHeightFt: 9,
     slabThicknessFt: 0.5
   },
-  // Rear terrace is the roof of the lower walkout, not a separate slab — it
-  // shares the walkout's plan footprint and sits at FF-1 ft (the top of the
-  // walkout walls).
+  // Rear terrace is the eastern portion of the walkout's roof — sits at
+  // FF - 1 ft (top of the walkout walls), east of the house.
   rearTerrace: { widthFt: 72, depthFt: 24, dropFromFFFt: 1 },
-  lowerWalkout: { widthFt: 72, depthFt: 24, floorDropFromFFFt: 12, heightFt: 11 },
+  // Lower walkout extends all the way under the main house and 24 ft east
+  // beyond the house's rear face, so depth = house depth (42 ft) + east
+  // extension (24 ft) = 66 ft. Western half is a buried sub-story under the
+  // house; eastern half is the daylight walkout with a glazed east face.
+  lowerWalkout: { widthFt: 72, depthFt: 66, floorDropFromFFFt: 12, heightFt: 11 },
   // Pool terrace shares the walkout floor's elevation — you walk straight out
   // of the walkout onto the pool deck.
   poolTerrace: { widthFt: 110, depthFt: 70, dropFromFFFt: 12 },
@@ -131,10 +142,13 @@ const DIMS = {
 // Local-frame Z offsets for downhill structures, computed from DIMS.
 // Reminder: local +Z = world west (front of house, uphill). So downhill = -Z.
 //
-// Rear terrace lives directly above the lower walkout (it IS the walkout's
-// roof), so they share their plan center. The pool terrace sits east of the
-// walkout at the same elevation as the walkout floor, so the user walks
-// directly out of the walkout onto the pool deck.
+// The lower walkout extends from the house's west face all the way through to
+// 24 ft east of the house's rear face, so its plan center sits inside the
+// house footprint (slightly west of the rear face). The rear terrace covers
+// only the eastern 24 ft of the walkout's roof — the western 42 ft of the
+// walkout is roofed by the main house's first floor, not a usable terrace.
+// The pool terrace abuts the walkout's east face at the same elevation as
+// the walkout floor.
 function downhillZ(): {
   rearTerraceCenterZ: number;
   lowerWalkoutCenterZ: number;
@@ -142,11 +156,23 @@ function downhillZ(): {
 } {
   const houseHalfDepth = feetToMeters(DIMS.house.depthFt) / 2;
   const walkoutDepth = feetToMeters(DIMS.lowerWalkout.depthFt);
+  const rearTerraceDepth = feetToMeters(DIMS.rearTerrace.depthFt);
   const poolDepth = feetToMeters(DIMS.poolTerrace.depthFt);
-  const walkoutCenter = -(houseHalfDepth + walkoutDepth / 2);
-  const poolCenter = -(houseHalfDepth + walkoutDepth + poolDepth / 2);
+
+  // Walkout west face aligns with the house's west face (+houseHalfDepth in
+  // local Z). Center sits half a walkout-depth east of that.
+  const walkoutCenter = houseHalfDepth - walkoutDepth / 2;
+  const walkoutEastFace = walkoutCenter - walkoutDepth / 2;
+
+  // Rear terrace covers ONLY the eastern walkout extension beyond the house
+  // rear (z = -houseHalfDepth) out to the walkout's east face.
+  const rearTerraceCenter = -houseHalfDepth - rearTerraceDepth / 2;
+
+  // Pool terrace abuts the walkout's east face.
+  const poolCenter = walkoutEastFace - poolDepth / 2;
+
   return {
-    rearTerraceCenterZ: walkoutCenter,
+    rearTerraceCenterZ: rearTerraceCenter,
     lowerWalkoutCenterZ: walkoutCenter,
     poolTerraceCenterZ: poolCenter
   };
@@ -195,6 +221,7 @@ export function createPropertyDesign(
   const ownedDisposables: Array<{ dispose(): void }> = [];
 
   let report: PropertyReportData = emptyReport();
+  let lastGradingPads: GradingPadSpec[] = [];
 
   const setAnchorTransform = (anchor: PropertyAnchor): void => {
     group.position.set(anchor.x, 0, anchor.z);
@@ -338,12 +365,18 @@ export function createPropertyDesign(
       ownedDisposables
     );
 
+    // Retaining walls are only emitted for the pool terrace — the house pad
+    // sits at FF with auto-grade flattening the terrain to match, and the
+    // lower walkout has its own structural walls. The pool terrace is the
+    // only open outdoor pad without walls of its own, so retaining is needed
+    // where the slope intersects its perimeter.
+    const retainingPads = analyticalPads.filter((p) => p.id === "poolTerrace");
     const tallWalls = buildRetainingWalls(
       handles.retainingWalls,
       mats,
       dem,
       state.anchor,
-      analyticalPads,
+      retainingPads,
       exaggeration,
       ownedDisposables
     );
@@ -424,6 +457,33 @@ export function createPropertyDesign(
       southGrassUsable: grass.south,
       retainingWallsOver6Ft: tallWalls
     };
+
+    // House pad and pool terrace are level outdoor pads — both should drive
+    // terrain auto-grading when that toggle is on. The walkout is a building
+    // (its walls retain the surrounding earth) so it's intentionally absent.
+    const featherMeters = feetToMeters(8);
+    lastGradingPads = [
+      {
+        id: "house",
+        anchor: { ...state.anchor },
+        localCenterX: 0,
+        localCenterZ: 0,
+        widthMeters: feetToMeters(DIMS.house.widthFt),
+        depthMeters: feetToMeters(DIMS.house.depthFt),
+        targetElevationMeters: finishedFloorMeters,
+        featherMeters
+      },
+      {
+        id: "poolTerrace",
+        anchor: { ...state.anchor },
+        localCenterX: 0,
+        localCenterZ: offsets.poolTerraceCenterZ,
+        widthMeters: feetToMeters(DIMS.poolTerrace.widthFt),
+        depthMeters: feetToMeters(DIMS.poolTerrace.depthFt),
+        targetElevationMeters: poolTerraceY,
+        featherMeters
+      }
+    ];
   };
 
   const dispose = (): void => {
@@ -441,6 +501,7 @@ export function createPropertyDesign(
     update,
     setAnchorTransform,
     getReportData: () => report,
+    getGradingPads: () => lastGradingPads,
     dispose
   };
 }
@@ -515,10 +576,10 @@ function makeMaterials(): PropertyMaterials {
     }),
     poolWater: new THREE.MeshStandardMaterial({
       color: Palette.pool,
-      roughness: 0.25,
+      roughness: 0.12,
       metalness: 0.0,
-      emissive: 0x1a4d66,
-      emissiveIntensity: 0.18
+      emissive: 0x2a87a3,
+      emissiveIntensity: 0.45
     }),
     woodDeck: new THREE.MeshStandardMaterial({
       color: Palette.woodDeck,
@@ -976,11 +1037,41 @@ function buildPoolTerrace(
 ): void {
   const w = feetToMeters(DIMS.poolTerrace.widthFt);
   const d = feetToMeters(DIMS.poolTerrace.depthFt);
+  const poolNS = feetToMeters(DIMS.pool.widthFt);
+  const poolEW = feetToMeters(DIMS.pool.lengthFt);
   const slabT = 0.25 * exaggeration;
-  const slabGeom = new THREE.BoxGeometry(w, slabT, d);
-  slabGeom.translate(0, -slabT / 2, 0);
+
+  // Pool terrace slab built with a rectangular hole in the middle so the
+  // pool water is visible from above. Outline is CCW, hole is CW.
+  const shape = new THREE.Shape();
+  shape.moveTo(-w / 2, -d / 2);
+  shape.lineTo(w / 2, -d / 2);
+  shape.lineTo(w / 2, d / 2);
+  shape.lineTo(-w / 2, d / 2);
+  shape.lineTo(-w / 2, -d / 2);
+
+  const hole = new THREE.Path();
+  hole.moveTo(-poolNS / 2, -poolEW / 2);
+  hole.lineTo(-poolNS / 2, poolEW / 2);
+  hole.lineTo(poolNS / 2, poolEW / 2);
+  hole.lineTo(poolNS / 2, -poolEW / 2);
+  hole.lineTo(-poolNS / 2, -poolEW / 2);
+  shape.holes.push(hole);
+
+  const slabGeom = new THREE.ExtrudeGeometry(shape, {
+    depth: slabT,
+    bevelEnabled: false
+  });
+  // Extrude lays the slab along +Y after rotateX. Translate so the top sits
+  // at y=0, bottom at y=-slabT, matching how the box-based slabs above are
+  // anchored to terraceY * exaggeration on their top surface.
+  slabGeom.rotateX(-Math.PI / 2);
+  slabGeom.translate(0, 0, 0);
+
   const slab = new THREE.Mesh(slabGeom, mats.bluestone);
-  slab.position.set(0, terraceY * exaggeration, centerLz);
+  // Default extrude after rotateX(-PI/2) sets bottom at y=0, top at y=slabT.
+  // We want the top at terraceY*exag, so shift the mesh down by slabT.
+  slab.position.set(0, terraceY * exaggeration - slabT, centerLz);
   out.add(slab);
   owned.push(slabGeom);
 }
@@ -1531,7 +1622,7 @@ function buildLabels(
     rearY * exaggeration + labelOffsetY * 0.6
   );
   pushLabel(
-    `Lower walkout 72 x 24 (floor FF -12 ft)`,
+    `Lower walkout 72 x 66 (sub-story under house, floor FF -12 ft)`,
     feetToMeters(DIMS.lowerWalkout.widthFt) / 2 + 2,
     offsets.lowerWalkoutCenterZ,
     walkoutY * exaggeration + labelOffsetY * 0.4

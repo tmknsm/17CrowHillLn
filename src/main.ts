@@ -10,6 +10,7 @@ import { buildSyntheticDem } from "./terrain/syntheticTerrain";
 import { createTerrainMesh } from "./terrain/createTerrainMesh";
 import { createContours } from "./terrain/createContours";
 import { sampleDem, type DemData } from "./terrain/demData";
+import { applyProposedGrading } from "./terrain/applyProposedGrading";
 import { loadTerrariumDem } from "./terrain/loadTerrariumDem";
 
 import {
@@ -64,22 +65,28 @@ async function main(): Promise<void> {
 
   const exaggeration = siteConfig.terrain.verticalExaggeration;
 
-  const dem = await loadExistingDem();
+  // Original DEM = the real terrain straight from elevation tiles. Cut/fill
+  // analytics always run against this so they reflect actual grading work.
+  // displayedDem is what gets rendered — equal to originalDem when auto-grade
+  // is off, or a regraded copy when it's on.
+  const originalDem = await loadExistingDem();
+  let displayedDem: DemData = originalDem;
+  const dem = originalDem;
 
   // Shift the entire scene down so the site center sits near y=0. DEM elevations
   // remain absolute (in meters) for cursor readout and contour labels; only the
   // visual root group is offset so the camera/lighting math stays simple.
-  const referenceElevation = sampleDem(dem, 0, 0);
+  const referenceElevation = sampleDem(originalDem, 0, 0);
   groups.root.position.y = -referenceElevation * exaggeration;
 
-  const terrain = createTerrainMesh(
-    dem,
+  let terrain = createTerrainMesh(
+    displayedDem,
     makeTerrainMaterial(Palette.existingTerrain),
     exaggeration
   );
   groups.terrain.add(terrain.mesh);
 
-  const contoursResult = createContours(dem, {
+  let contoursResult = createContours(displayedDem, {
     intervalFeet: siteConfig.terrain.contourIntervalFeet,
     indexEvery: 5,
     exaggeration
@@ -162,7 +169,8 @@ async function main(): Promise<void> {
     visibility: defaultVisibility(),
     exaggeration,
     anchor: { ...initialAnchor },
-    floorOffsetAboveWestGradeFt: initialFloorOffsetFt
+    floorOffsetAboveWestGradeFt: initialFloorOffsetFt,
+    autoGradeTerrain: siteConfig.property.defaultAutoGradeTerrain
   };
 
   let contoursGroup = contoursResult.group;
@@ -170,7 +178,7 @@ async function main(): Promise<void> {
   function rebuildContours(): void {
     groups.annotations.remove(contoursGroup);
     disposeGroup(contoursGroup);
-    const next = createContours(dem, {
+    const next = createContours(displayedDem, {
       intervalFeet: siteConfig.terrain.contourIntervalFeet,
       indexEvery: 5,
       exaggeration: state.exaggeration
@@ -180,6 +188,31 @@ async function main(): Promise<void> {
     groups.annotations.add(next.group);
     applyLayerVisibility(state.visibility, handles);
   }
+
+  function rebuildTerrainMesh(): void {
+    groups.terrain.remove(terrain.mesh);
+    terrain.geometry.dispose();
+    terrain = createTerrainMesh(
+      displayedDem,
+      makeTerrainMaterial(Palette.existingTerrain),
+      state.exaggeration
+    );
+    groups.terrain.add(terrain.mesh);
+    handles.terrain = terrain.mesh;
+    applyLayerVisibility(state.visibility, handles);
+  }
+
+  function applyTerrainGrading(): void {
+    if (state.autoGradeTerrain) {
+      displayedDem = applyProposedGrading(originalDem, property.getGradingPads());
+    } else {
+      displayedDem = originalDem;
+    }
+    rebuildTerrainMesh();
+    rebuildContours();
+  }
+
+  applyTerrainGrading();
 
   const propertyReport = createPropertyReport();
   propertyReport.update(property.getReportData());
@@ -192,6 +225,7 @@ async function main(): Promise<void> {
       },
       state.exaggeration
     );
+    applyTerrainGrading();
     propertyReport.update(property.getReportData());
     applyLayerVisibility(state.visibility, handles);
   }
@@ -202,8 +236,8 @@ async function main(): Promise<void> {
     },
     onExaggerationChange: (scale) => {
       state.exaggeration = scale;
-      terrain.applyExaggeration(scale);
       groups.root.position.y = -referenceElevation * scale;
+      rebuildTerrainMesh();
       rebuildContours();
       commitPropertyChange();
     },
@@ -213,6 +247,9 @@ async function main(): Promise<void> {
     },
     onPropertyCommit: () => {
       commitPropertyChange();
+    },
+    onAutoGradeChange: () => {
+      applyTerrainGrading();
     }
   });
 
@@ -221,7 +258,7 @@ async function main(): Promise<void> {
   bindCursorReadout({
     camera,
     domElement: renderer.domElement,
-    dem,
+    getDem: () => displayedDem,
     getExaggeration: () => state.exaggeration
   });
 
