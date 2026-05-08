@@ -35,6 +35,7 @@ import { createPropertyReport } from "./ui/createPropertyReport";
 import { bindCursorReadout } from "./ui/createCursorReadout";
 import { bindNorthArrow } from "./ui/createNorthArrow";
 import { bindScaleBar } from "./ui/createScaleBar";
+import { bindChromeToggle } from "./ui/createChromeToggle";
 
 import { createProjection } from "./utils/geo";
 import { Palette, makeTerrainMaterial } from "./utils/materials";
@@ -264,6 +265,7 @@ async function main(): Promise<void> {
 
   const northArrow = bindNorthArrow(camera);
   const scaleBar = bindScaleBar(camera, controls, renderer.domElement);
+  bindChromeToggle();
 
   applyLayerVisibility(state.visibility, handles);
 
