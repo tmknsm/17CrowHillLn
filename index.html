@@ -211,6 +211,65 @@
         text-align: right;
       }
 
+      /* Property report panel */
+      .property-report {
+        position: fixed;
+        top: 64px;
+        right: 16px;
+        width: 280px;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        box-shadow: var(--shadow);
+        z-index: 9;
+        font-size: 11px;
+        color: var(--text-dim);
+        display: none;
+      }
+
+      .property-report.visible {
+        display: block;
+      }
+
+      .property-report .pr-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        padding-bottom: 6px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--panel-border);
+      }
+
+      .property-report .pr-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        padding: 3px 0;
+      }
+
+      .property-report .pr-label {
+        color: var(--text-dim);
+        flex: 0 0 auto;
+      }
+
+      .property-report .pr-value {
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+        font-weight: 500;
+      }
+
+      /* When camera presets are visible the report sits beneath them. */
+      .camera-presets + .property-report {
+        top: 224px;
+      }
+
       /* North arrow */
       .north-arrow {
         position: fixed;
@@ -298,6 +357,8 @@
       <button data-preset="sideSlope">Side Slope</button>
       <button data-preset="freeOrbit">Free Orbit</button>
     </aside>
+
+    <aside class="property-report visible" id="property-report"></aside>
 
     <div class="north-arrow" id="north-arrow" title="North">
       <svg viewBox="0 0 64 64" aria-hidden="true">

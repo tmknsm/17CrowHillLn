@@ -25,6 +25,16 @@ export interface SiteConfig {
       noiseAmplitudeMeters: number;
     };
   };
+  /**
+   * Property design boot defaults — the placement the design opens at before
+   * the user starts tweaking sliders. Rotation is still derived from the
+   * parcel's longest west-facing edge so it auto-aligns with the road frontage.
+   */
+  property: {
+    defaultAnchorXMeters: number;
+    defaultAnchorZMeters: number;
+    defaultFloorOffsetAboveWestGradeFt: number;
+  };
 }
 
 export const siteConfig: SiteConfig = {
@@ -49,5 +59,10 @@ export const siteConfig: SiteConfig = {
       ridgeAmplitudeMeters: 4.5,
       noiseAmplitudeMeters: 1.6
     }
+  },
+  property: {
+    defaultAnchorXMeters: 24.5,
+    defaultAnchorZMeters: -10.5,
+    defaultFloorOffsetAboveWestGradeFt: 6
   }
 };

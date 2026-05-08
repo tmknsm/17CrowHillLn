@@ -19,7 +19,17 @@ export const Palette = {
   retainingWall: 0x6e6a64,
   cut: 0xc97a4f,
   fill: 0x6da3c7,
-  background: 0x1a1d1f
+  background: 0x1a1d1f,
+  house: 0xf2eee6,
+  houseRoof: 0x2a2d30,
+  houseTrim: 0x3b3f44,
+  bluestone: 0x8a8378,
+  coping: 0xc7c0b4,
+  glass: 0x9bb6c8,
+  gradingPad: 0xb9d39e,
+  slopeWarning: 0xc97a4f,
+  window: 0x1b1f23,
+  woodDeck: 0x6b4f3a
 } as const;
 
 export function makeTerrainMaterial(color: number): THREE.MeshStandardMaterial {

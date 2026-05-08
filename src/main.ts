@@ -18,7 +18,7 @@ import {
   type ParcelGeoJSONFeature
 } from "./layers/createParcelBoundary";
 import { createSegmentLabels } from "./layers/createSegmentLabels";
-import { createHomeStructures } from "./layers/createHomeStructures";
+import { createPropertyDesign } from "./layers/createPropertyDesign";
 import { createRoadContext } from "./layers/createRoadContext";
 
 import {
@@ -30,12 +30,15 @@ import {
 
 import { bindCameraPresets } from "./ui/createCameraPresets";
 import { createLayerPanel } from "./ui/createLayerPanel";
+import { createPropertyReport } from "./ui/createPropertyReport";
 import { bindCursorReadout } from "./ui/createCursorReadout";
 import { bindNorthArrow } from "./ui/createNorthArrow";
 import { bindScaleBar } from "./ui/createScaleBar";
 
 import { createProjection } from "./utils/geo";
 import { Palette, makeTerrainMaterial } from "./utils/materials";
+import { feetToMeters } from "./utils/geo";
+import { seedAnchorFromParcel } from "./utils/terrainSampling";
 
 async function main(): Promise<void> {
   const appRoot = document.getElementById("app");
@@ -100,10 +103,31 @@ async function main(): Promise<void> {
   });
   groups.context.add(lotDimensions);
 
-  const home = createHomeStructures(parcelFeature, proj, dem, {
+  // Anchor rotation comes from the longest west-facing parcel edge so the
+  // house auto-aligns with the road frontage. X/Z and FF offset start from the
+  // site-tuned defaults in siteConfig — the user can still tweak any of them
+  // via the Home folder in the layer panel.
+  const seedAnchor = seedAnchorFromParcel(parcelFeature, proj, {
+    houseDepthMeters: feetToMeters(42),
+    setbackMeters: 8
+  });
+  const initialAnchor = {
+    x: siteConfig.property.defaultAnchorXMeters,
+    z: siteConfig.property.defaultAnchorZMeters,
+    rotationY: seedAnchor.rotationY
+  };
+  const initialFloorOffsetFt =
+    siteConfig.property.defaultFloorOffsetAboveWestGradeFt;
+
+  const property = createPropertyDesign({
+    dem,
+    state: {
+      anchor: { ...initialAnchor },
+      floorOffsetAboveWestGradeFt: initialFloorOffsetFt
+    },
     exaggeration
   });
-  groups.context.add(home.group);
+  groups.context.add(property.group);
 
   // Road context lives in contextGroup so it's always shown alongside the parcel.
   const roadContext = await createRoadContext(proj, dem, {
@@ -121,14 +145,24 @@ async function main(): Promise<void> {
     roadContext: roadContext.group,
     terrain: terrain.mesh,
     contours: contoursResult.group,
-    house: home.house,
-    balcony: home.balcony,
-    pool: home.pool
+    house: property.handles.house,
+    rearTerrace: property.handles.rearTerrace,
+    lowerWalkout: property.handles.lowerWalkout,
+    poolTerrace: property.handles.poolTerrace,
+    pool: property.handles.pool,
+    grassZones: property.handles.grassZones,
+    stairs: property.handles.stairs,
+    retainingWalls: property.handles.retainingWalls,
+    gradingPads: property.handles.gradingPads,
+    cutFillOverlay: property.handles.cutFillOverlay,
+    labels: property.handles.labels
   };
 
   const state: ViewState = {
     visibility: defaultVisibility(),
-    exaggeration
+    exaggeration,
+    anchor: { ...initialAnchor },
+    floorOffsetAboveWestGradeFt: initialFloorOffsetFt
   };
 
   let contoursGroup = contoursResult.group;
@@ -147,6 +181,21 @@ async function main(): Promise<void> {
     applyLayerVisibility(state.visibility, handles);
   }
 
+  const propertyReport = createPropertyReport();
+  propertyReport.update(property.getReportData());
+
+  function commitPropertyChange(): void {
+    property.update(
+      {
+        anchor: state.anchor,
+        floorOffsetAboveWestGradeFt: state.floorOffsetAboveWestGradeFt
+      },
+      state.exaggeration
+    );
+    propertyReport.update(property.getReportData());
+    applyLayerVisibility(state.visibility, handles);
+  }
+
   createLayerPanel(state, {
     onVisibilityChange: (vis) => {
       applyLayerVisibility(vis, handles);
@@ -156,6 +205,14 @@ async function main(): Promise<void> {
       terrain.applyExaggeration(scale);
       groups.root.position.y = -referenceElevation * scale;
       rebuildContours();
+      commitPropertyChange();
+    },
+    onPropertyDrag: (anchor) => {
+      // Cheap update during slider drag: move the property root in lockstep.
+      property.setAnchorTransform(anchor);
+    },
+    onPropertyCommit: () => {
+      commitPropertyChange();
     }
   });
 
