@@ -322,9 +322,10 @@ async function loadParcelOrPlaceholder(
   proj: ReturnType<typeof createProjection>
 ): Promise<ParcelGeoJSONFeature> {
   try {
-    const res = await fetch("/data/parcel-boundary.geojson", {
-      cache: "no-store"
-    });
+    const res = await fetch(
+      `${import.meta.env.BASE_URL}data/parcel-boundary.geojson`,
+      { cache: "no-store" }
+    );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     if (json?.type === "FeatureCollection" && json.features?.length > 0) {

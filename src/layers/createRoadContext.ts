@@ -120,9 +120,10 @@ async function loadRoadFeatures(
   proj: ProjectionContext
 ): Promise<LineFeature[]> {
   try {
-    const res = await fetch("/data/road-context.geojson", {
-      cache: "no-store"
-    });
+    const res = await fetch(
+      `${import.meta.env.BASE_URL}data/road-context.geojson`,
+      { cache: "no-store" }
+    );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     const features: LineFeature[] = [];
