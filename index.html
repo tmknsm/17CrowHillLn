@@ -274,6 +274,14 @@
         display: none !important;
       }
 
+      /* The property report panel is desktop-only — too dense for phones. */
+      @media (max-width: 768px) {
+        .property-report,
+        .property-report.visible {
+          display: none !important;
+        }
+      }
+
       /* Property report panel */
       .property-report {
         position: fixed;
