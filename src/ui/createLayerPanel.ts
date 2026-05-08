@@ -23,7 +23,7 @@ export function createLayerPanel(
     .onChange(() => hooks.onVisibilityChange(state.visibility));
   baseFolder
     .add(state.visibility, "roadContext")
-    .name("Road / context")
+    .name("Crow Hill Ln / Rd")
     .onChange(() => hooks.onVisibilityChange(state.visibility));
 
   const homeFolder = gui.addFolder("Home");

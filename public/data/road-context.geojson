@@ -1,0 +1,100 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "source": "OpenStreetMap (© OSM contributors, ODbL) via Overpass API",
+    "fetched": "2026-05-07",
+    "notes": "Crow Hill Road (way 24177306) and Crow Hill Lane (way 24143187) are both highway=service, access=private. They form one continuous shared private road wrapping the N/W/SW of the 17 Crow Hill Ln parcel and continuing south. Branch service drives 24141289 and 24174972 are nearby private accessways."
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "road",
+        "name": "Crow Hill Road",
+        "osmId": 24177306,
+        "highway": "service",
+        "access": "private",
+        "touchesParcel": true
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-73.8839127, 41.9383095],
+          [-73.8840704, 41.9382965],
+          [-73.8842528, 41.9382925],
+          [-73.8844507, 41.9382962],
+          [-73.8845639, 41.9383145],
+          [-73.8846980, 41.9383244],
+          [-73.8848442, 41.9383169],
+          [-73.8849361, 41.9382961],
+          [-73.8849928, 41.9382522],
+          [-73.8850167, 41.9382086],
+          [-73.8850220, 41.9381730],
+          [-73.8850497, 41.9381501],
+          [-73.8852880, 41.9376290],
+          [-73.8854527, 41.9372185]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "road",
+        "name": "Crow Hill Lane",
+        "osmId": 24143187,
+        "highway": "service",
+        "access": "private",
+        "touchesParcel": false
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-73.8854527, 41.9372185],
+          [-73.8855939, 41.9369190],
+          [-73.8856627, 41.9365115],
+          [-73.8856580, 41.9363148],
+          [-73.8857088, 41.9359852]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "branch",
+        "osmId": 24141289,
+        "highway": "service",
+        "access": "private"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-73.8842220, 41.9361720],
+          [-73.8847990, 41.9363280],
+          [-73.8848340, 41.9363740],
+          [-73.8849520, 41.9364420],
+          [-73.8850920, 41.9364530],
+          [-73.8852620, 41.9364600],
+          [-73.8854270, 41.9364770],
+          [-73.8856627, 41.9365115]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "branch",
+        "osmId": 24174972,
+        "highway": "service",
+        "access": "private"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-73.8849520, 41.9364420],
+          [-73.8853800, 41.9363500],
+          [-73.8856580, 41.9363148]
+        ]
+      }
+    }
+  ]
+}

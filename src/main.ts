@@ -106,13 +106,19 @@ async function main(): Promise<void> {
   groups.context.add(home.group);
 
   // Road context lives in contextGroup so it's always shown alongside the parcel.
-  const roadContext = createRoadContext(dem, { exaggeration });
-  groups.context.add(roadContext);
+  const roadContext = await createRoadContext(proj, dem, {
+    exaggeration,
+    viewportSize: {
+      width: appRoot.clientWidth,
+      height: appRoot.clientHeight
+    }
+  });
+  groups.context.add(roadContext.group);
 
   const handles: LayerHandles = {
     parcelBoundary: parcel.primary,
     lotDimensions,
-    roadContext,
+    roadContext: roadContext.group,
     terrain: terrain.mesh,
     contours: contoursResult.group,
     house: home.house,
@@ -174,6 +180,7 @@ async function main(): Promise<void> {
     camera.aspect = w / Math.max(h, 1);
     camera.updateProjectionMatrix();
     parcel.lineMaterial.resolution.set(w, h);
+    for (const m of roadContext.lineMaterials) m.resolution.set(w, h);
   });
 
   function tick(): void {
