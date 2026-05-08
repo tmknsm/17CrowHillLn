@@ -6,6 +6,9 @@ export interface LayerVisibility {
   roadContext: boolean;
   terrain: boolean;
   contours: boolean;
+  house: boolean;
+  balcony: boolean;
+  pool: boolean;
 }
 
 export interface LayerHandles {
@@ -14,6 +17,9 @@ export interface LayerHandles {
   roadContext?: THREE.Object3D;
   terrain?: THREE.Object3D;
   contours?: THREE.Object3D;
+  house?: THREE.Object3D;
+  balcony?: THREE.Object3D;
+  pool?: THREE.Object3D;
 }
 
 export const defaultVisibility = (): LayerVisibility => ({
@@ -21,7 +27,10 @@ export const defaultVisibility = (): LayerVisibility => ({
   lotDimensions: true,
   roadContext: true,
   terrain: true,
-  contours: true
+  contours: true,
+  house: true,
+  balcony: true,
+  pool: true
 });
 
 export interface ViewState {
@@ -38,6 +47,9 @@ export function applyLayerVisibility(
   setVisible(handles.roadContext, visibility.roadContext);
   setVisible(handles.terrain, visibility.terrain);
   setVisible(handles.contours, visibility.contours);
+  setVisible(handles.house, visibility.house);
+  setVisible(handles.balcony, visibility.balcony);
+  setVisible(handles.pool, visibility.pool);
 }
 
 function setVisible(obj: THREE.Object3D | undefined, visible: boolean): void {

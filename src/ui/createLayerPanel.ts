@@ -26,6 +26,20 @@ export function createLayerPanel(
     .name("Road / context")
     .onChange(() => hooks.onVisibilityChange(state.visibility));
 
+  const homeFolder = gui.addFolder("Home");
+  homeFolder
+    .add(state.visibility, "house")
+    .name("House")
+    .onChange(() => hooks.onVisibilityChange(state.visibility));
+  homeFolder
+    .add(state.visibility, "balcony")
+    .name("Balcony")
+    .onChange(() => hooks.onVisibilityChange(state.visibility));
+  homeFolder
+    .add(state.visibility, "pool")
+    .name("Pool")
+    .onChange(() => hooks.onVisibilityChange(state.visibility));
+
   const terrainFolder = gui.addFolder("Terrain");
   terrainFolder
     .add(state.visibility, "terrain")

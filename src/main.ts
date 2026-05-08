@@ -18,6 +18,7 @@ import {
   type ParcelGeoJSONFeature
 } from "./layers/createParcelBoundary";
 import { createSegmentLabels } from "./layers/createSegmentLabels";
+import { createHomeStructures } from "./layers/createHomeStructures";
 import { createRoadContext } from "./layers/createRoadContext";
 
 import {
@@ -99,6 +100,11 @@ async function main(): Promise<void> {
   });
   groups.context.add(lotDimensions);
 
+  const home = createHomeStructures(parcelFeature, proj, dem, {
+    exaggeration
+  });
+  groups.context.add(home.group);
+
   // Road context lives in contextGroup so it's always shown alongside the parcel.
   const roadContext = createRoadContext(dem, { exaggeration });
   groups.context.add(roadContext);
@@ -108,7 +114,10 @@ async function main(): Promise<void> {
     lotDimensions,
     roadContext,
     terrain: terrain.mesh,
-    contours: contoursResult.group
+    contours: contoursResult.group,
+    house: home.house,
+    balcony: home.balcony,
+    pool: home.pool
   };
 
   const state: ViewState = {
