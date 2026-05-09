@@ -336,9 +336,13 @@
         font-weight: 500;
       }
 
-      /* When camera presets are visible the report sits beneath them. */
+      /* When camera presets are visible the report sits beneath them with a
+         clear gap. The presets are ~211 px tall (5 buttons + label + gaps +
+         padding) starting at 64 px, ending around 275 px, so 296 px gives
+         ~21 px breathing room without crowding the report against them. */
       .camera-presets + .property-report {
-        top: 224px;
+        top: 296px;
+        max-height: calc(100vh - 360px);
       }
 
       /* North arrow */
